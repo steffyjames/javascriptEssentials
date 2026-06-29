@@ -12,6 +12,17 @@ const destinations = [
   },
   {
     id: 2,
+    name: "Tokyo",
+    country: "Japan",
+    region: "Asia",
+    image: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&q=80",
+    description: "Neon-lit streets, world-class cuisine, and a seamless blend of futuristic city life and tradition.",
+    keywords: ["city", "food", "culture", "technology", "nightlife", "asia"],
+    price: 2099,
+    rating: 4.8,
+  },
+  {
+    id: 3,
     name: "Santorini",
     country: "Greece",
     region: "Europe",
@@ -22,7 +33,18 @@ const destinations = [
     rating: 4.8,
   },
   {
-    id: 3,
+    id: 4,
+    name: "Athens",
+    country: "Greece",
+    region: "Europe",
+    image: "https://images.unsplash.com/photo-1555993539-1732b0258235?w=800&q=80",
+    description: "Walk in the footsteps of philosophers among ancient ruins and vibrant modern neighborhoods.",
+    keywords: ["history", "ruins", "culture", "mythology", "food", "europe"],
+    price: 1599,
+    rating: 4.7,
+  },
+  {
+    id: 5,
     name: "Marrakech",
     country: "Morocco",
     region: "Africa",
@@ -33,7 +55,7 @@ const destinations = [
     rating: 4.7,
   },
   {
-    id: 4,
+    id: 6,
     name: "Patagonia",
     country: "Argentina",
     region: "South America",
@@ -44,7 +66,7 @@ const destinations = [
     rating: 4.9,
   },
   {
-    id: 5,
+    id: 7,
     name: "Bali",
     country: "Indonesia",
     region: "Asia",
@@ -55,7 +77,7 @@ const destinations = [
     rating: 4.8,
   },
   {
-    id: 6,
+    id: 8,
     name: "Reykjavik",
     country: "Iceland",
     region: "Europe",
@@ -66,7 +88,7 @@ const destinations = [
     rating: 4.8,
   },
   {
-    id: 7,
+    id: 9,
     name: "Cusco",
     country: "Peru",
     region: "South America",
@@ -77,7 +99,7 @@ const destinations = [
     rating: 4.9,
   },
   {
-    id: 8,
+    id: 10,
     name: "Cape Town",
     country: "South Africa",
     region: "Africa",
@@ -88,7 +110,7 @@ const destinations = [
     rating: 4.7,
   },
   {
-    id: 9,
+    id: 11,
     name: "Hanoi",
     country: "Vietnam",
     region: "Asia",
@@ -99,7 +121,7 @@ const destinations = [
     rating: 4.6,
   },
   {
-    id: 10,
+    id: 12,
     name: "Lisbon",
     country: "Portugal",
     region: "Europe",
@@ -110,7 +132,7 @@ const destinations = [
     rating: 4.7,
   },
   {
-    id: 11,
+    id: 13,
     name: "Queenstown",
     country: "New Zealand",
     region: "Oceania",
@@ -121,7 +143,7 @@ const destinations = [
     rating: 4.9,
   },
   {
-    id: 12,
+    id: 14,
     name: "Petra",
     country: "Jordan",
     region: "Middle East",

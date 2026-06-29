@@ -54,9 +54,47 @@
   let highlightedIndex = -1;
   let suggestionResults = [];
 
+  const uniqueCountries = [...new Set(destinations.map((dest) => dest.country))];
+
+  function isCountryListQuery(query) {
+    const term = query.trim().toLowerCase();
+    if (!term) return false;
+    return term === 'country' || (term.length >= 4 && 'country'.startsWith(term));
+  }
+
+  function getMatchingCountries(query) {
+    const term = query.trim().toLowerCase();
+    if (!term || isCountryListQuery(query)) return [];
+
+    return uniqueCountries.filter((country) => country.toLowerCase().includes(term));
+  }
+
+  function getDestinationsByCountry(country, limit = 2) {
+    return destinations.filter((dest) => dest.country === country).slice(0, limit);
+  }
+
+  function isCountryNameSearch(query) {
+    return getMatchingCountries(query).length > 0;
+  }
+
   function searchDestinations(query) {
     const term = query.trim().toLowerCase();
     if (!term) return destinations;
+
+    if (isCountryListQuery(query)) {
+      return [];
+    }
+
+    const matchingCountries = getMatchingCountries(query);
+    if (matchingCountries.length === 1) {
+      return getDestinationsByCountry(matchingCountries[0], 2);
+    }
+
+    if (matchingCountries.length > 1) {
+      return matchingCountries
+        .slice(0, 2)
+        .flatMap((country) => getDestinationsByCountry(country, 1));
+    }
 
     return destinations.filter((dest) => {
       const searchable = [
@@ -70,6 +108,71 @@
         .toLowerCase();
 
       return searchable.includes(term) || term.split(' ').every((word) => searchable.includes(word));
+    });
+  }
+
+  function buildSuggestions(query) {
+    const term = query.trim().toLowerCase();
+    if (!term) return [];
+
+    if (isCountryListQuery(query)) {
+      return uniqueCountries.map((country) => ({
+        type: 'country',
+        country,
+        destinations: getDestinationsByCountry(country, 2),
+      }));
+    }
+
+    const matchingCountries = getMatchingCountries(query);
+    if (matchingCountries.length > 0) {
+      return matchingCountries.slice(0, 2).map((country) => ({
+        type: 'country',
+        country,
+        destinations: getDestinationsByCountry(country, 2),
+      }));
+    }
+
+    return searchDestinations(query)
+      .slice(0, 5)
+      .map((dest) => ({ type: 'destination', destination: dest }));
+  }
+
+  function renderCountryList(countries) {
+    destinationsGrid.innerHTML = '';
+    destinationsGrid.classList.remove('hidden');
+    noResults.classList.add('hidden');
+    resultsSummary.textContent = `Select a country to explore destinations (${countries.length} available)`;
+
+    countries.forEach((country, index) => {
+      const countryDests = getDestinationsByCountry(country, 2);
+      const card = document.createElement('article');
+      card.className = 'destination-card country-card';
+      card.style.animationDelay = `${index * 0.08}s`;
+
+      card.innerHTML = `
+        <div class="card-image">
+          <img src="${countryDests[0].image}" alt="${country}" loading="lazy" />
+          <span class="card-rating">🌍 Country</span>
+        </div>
+        <div class="card-body">
+          <div class="card-location">${countryDests[0].region}</div>
+          <h3>${country}</h3>
+          <p>${countryDests.map((dest) => dest.name).join(' · ')}</p>
+          <div class="card-footer">
+            <div class="card-price">${countryDests.length} destination${countryDests.length !== 1 ? 's' : ''}</div>
+            <button class="card-book-btn country-select-btn" type="button">Explore</button>
+          </div>
+        </div>
+      `;
+
+      card.querySelector('.country-select-btn').addEventListener('click', () => {
+        searchInput.value = country;
+        currentQuery = country;
+        renderDestinations(getDestinationsByCountry(country, 2));
+        document.getElementById('destinations').scrollIntoView({ behavior: 'smooth' });
+      });
+
+      destinationsGrid.appendChild(card);
     });
   }
 
@@ -87,7 +190,19 @@
     noResults.classList.add('hidden');
 
     if (currentQuery) {
-      resultsSummary.textContent = `Found ${results.length} destination${results.length !== 1 ? 's' : ''} matching "${currentQuery}"`;
+      if (isCountryListQuery(currentQuery)) {
+        resultsSummary.textContent = `Select a country to explore destinations (${uniqueCountries.length} available)`;
+      } else {
+        const matchingCountries = getMatchingCountries(currentQuery);
+        if (matchingCountries.length > 0) {
+          resultsSummary.textContent =
+            matchingCountries.length === 1
+              ? `Showing destinations in ${matchingCountries[0]}`
+              : `Showing options in ${matchingCountries.slice(0, 2).join(' and ')}`;
+        } else {
+          resultsSummary.textContent = `Found ${results.length} destination${results.length !== 1 ? 's' : ''} matching "${currentQuery}"`;
+        }
+      }
     } else {
       resultsSummary.textContent = 'Showing all destinations — start typing to find your perfect match.';
     }
@@ -126,7 +241,7 @@
   function renderSuggestions(results) {
     if (!searchSuggestions) return;
 
-    suggestionResults = results.slice(0, 5);
+    suggestionResults = buildSuggestions(searchInput.value);
     highlightedIndex = -1;
 
     if (suggestionResults.length === 0 || !searchInput.value.trim()) {
@@ -136,40 +251,71 @@
     }
 
     searchSuggestions.innerHTML = suggestionResults
-      .map(
-        (dest, i) => `
-        <div class="suggestion-item" data-index="${i}" data-id="${dest.id}">
-          <img class="suggestion-thumb" src="${dest.image}" alt="" />
-          <div class="suggestion-info">
-            <strong>${dest.name}</strong>
-            <span>${dest.country} · ${dest.region}</span>
+      .map((item, i) => {
+        if (item.type === 'country') {
+          const cityNames = item.destinations.map((dest) => dest.name).join(' · ');
+          return `
+            <div class="suggestion-item suggestion-country" data-index="${i}" data-type="country" data-country="${item.country}">
+              <div class="suggestion-flag">🌍</div>
+              <div class="suggestion-info">
+                <strong>${item.country}</strong>
+                <span>${cityNames || 'Explore destinations'}</span>
+              </div>
+            </div>
+          `;
+        }
+
+        const dest = item.destination;
+        return `
+          <div class="suggestion-item" data-index="${i}" data-type="destination" data-id="${dest.id}">
+            <img class="suggestion-thumb" src="${dest.image}" alt="" />
+            <div class="suggestion-info">
+              <strong>${dest.name}</strong>
+              <span>${dest.country} · ${dest.region}</span>
+            </div>
           </div>
-        </div>
-      `
-      )
+        `;
+      })
       .join('');
 
     searchSuggestions.classList.add('active');
 
     searchSuggestions.querySelectorAll('.suggestion-item').forEach((item) => {
       item.addEventListener('click', () => {
-        const dest = suggestionResults[parseInt(item.dataset.index, 10)];
-        selectSuggestion(dest);
+        const suggestion = suggestionResults[parseInt(item.dataset.index, 10)];
+        selectSuggestion(suggestion);
       });
     });
   }
 
-  function selectSuggestion(dest) {
+  function selectSuggestion(suggestion) {
+    if (suggestion.type === 'country') {
+      searchInput.value = suggestion.country;
+      currentQuery = suggestion.country;
+      searchSuggestions.classList.remove('active');
+      renderDestinations(getDestinationsByCountry(suggestion.country, 2));
+      document.getElementById('destinations').scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+
+    const dest = suggestion.destination;
     searchInput.value = dest.name;
     currentQuery = dest.name;
     searchSuggestions.classList.remove('active');
-    const results = searchDestinations(dest.name);
-    renderDestinations(results);
+    renderDestinations(searchDestinations(dest.name));
     document.getElementById('destinations').scrollIntoView({ behavior: 'smooth' });
   }
 
   function performSearch() {
     currentQuery = searchInput.value;
+
+    if (isCountryListQuery(currentQuery)) {
+      renderCountryList(uniqueCountries);
+      searchSuggestions.classList.remove('active');
+      document.getElementById('destinations').scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+
     const results = searchDestinations(currentQuery);
     renderDestinations(results);
     searchSuggestions.classList.remove('active');
@@ -223,11 +369,18 @@
   // Event listeners
   if (searchInput) {
     searchInput.addEventListener('input', () => {
-      const results = searchDestinations(searchInput.value);
-      renderSuggestions(results);
-      if (!searchInput.value.trim()) {
+      renderSuggestions();
+      const value = searchInput.value.trim();
+
+      if (!value) {
         currentQuery = '';
         renderDestinations(destinations);
+      } else if (isCountryListQuery(value)) {
+        currentQuery = value;
+        renderCountryList(uniqueCountries);
+      } else if (isCountryNameSearch(value)) {
+        currentQuery = value;
+        renderDestinations(searchDestinations(value));
       }
     });
 
@@ -256,7 +409,7 @@
 
     searchInput.addEventListener('focus', () => {
       if (searchInput.value.trim()) {
-        renderSuggestions(searchDestinations(searchInput.value));
+        renderSuggestions();
       }
     });
   }
